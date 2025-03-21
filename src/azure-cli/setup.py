@@ -75,7 +75,7 @@ DEPENDENCIES = [
     'azure-mgmt-cognitiveservices~=13.5.0',
     'azure-mgmt-compute~=33.0.0',
     'azure-mgmt-containerinstance==10.2.0b1',
-    'azure-mgmt-containerregistry==10.3.0',
+    'azure-mgmt-containerregistry @ file:///Users/zoeyli/ACR/azure-cli/src/azure-cli/azure_mgmt_containerregistry-12.0.0-py3-none-any.whl',
     'azure-mgmt-containerservice~=34.2.0',
     'azure-mgmt-cosmosdb==9.7.0',
     'azure-mgmt-databoxedge~=1.0.0',
@@ -176,6 +176,9 @@ setup(
     ],
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests", "azure", "azure.cli"]),
     install_requires=DEPENDENCIES,
+    dependency_links=[
+        'file:///Users/zoeyli/ACR/azure-cli/src/azure-cli/azure_mgmt_containerregistry-12.0.0-py3-none-any.whl'
+    ],
     python_requires='>=3.9.0',
     package_data={
         'azure.cli.command_modules.acr': ['*.json'],

@@ -22,6 +22,7 @@ from azure.cli.core.commands.validators import get_default_location_from_resourc
 from .policy import RetentionType
 
 from ._constants import (
+    ABACRoleAssignmentMode,
     REGISTRY_RESOURCE_TYPE,
     WEBHOOK_RESOURCE_TYPE,
     REPLICATION_RESOURCE_TYPE,
@@ -73,9 +74,9 @@ image_by_tag_or_digest_type = CLIArgumentType(
 
 def load_arguments(self, _):  # pylint: disable=too-many-statements
     PasswordName, DefaultAction, PolicyStatus, WebhookAction, WebhookStatus, \
-        TokenStatus, ZoneRedundancy = self.get_models(
+        TokenStatus, ZoneRedundancy, RoleAssignmentMode = self.get_models(
             'PasswordName', 'DefaultAction', 'PolicyStatus', 'WebhookAction', 'WebhookStatus',
-            'TokenStatus', 'ZoneRedundancy')
+            'TokenStatus', 'ZoneRedundancy', 'RoleAssignmentMode')
     TaskStatus, BaseImageTriggerType, SourceRegistryLoginMode, UpdateTriggerPayloadType = self.get_models(
         'TaskStatus', 'BaseImageTriggerType', 'SourceRegistryLoginMode', 'UpdateTriggerPayloadType', operation_group='tasks')
     RunStatus = self.get_models('RunStatus', operation_group='runs')
@@ -113,6 +114,9 @@ def load_arguments(self, _):  # pylint: disable=too-many-statements
                        help='Default action to apply when no rule matches. Only applicable to Premium SKU.')
             c.argument('public_network_enabled', get_three_state_flag(), help="Allow public network access for the container registry.{suffix}".format(suffix=default_allow_suffix))
             c.argument('allow_trusted_services', get_three_state_flag(), is_preview=True, help="Allow trusted Azure Services to access network restricted registries. For more information, please visit https://aka.ms/acr/trusted-services.{suffix}".format(suffix=default_allow_suffix))
+        
+        with self.argument_context(scope, arg_group="Permissions and Role Assignment") as c:
+            c.argument("role_assignment_mode", arg_type=get_enum_type(ABACRoleAssignmentMode), help="Role assignment mode of the registry. For more information on this feature, see https://aka.ms/acr/abac/repository-permissions. The Default is rbac.")
 
     with self.argument_context('acr create', arg_group="Customer managed key") as c:
         c.argument('identity', help="Use assigned managed identity resource id or name if in the same resource group")
@@ -306,6 +310,7 @@ def load_arguments(self, _):  # pylint: disable=too-many-statements
         c.argument('set_secret', help="Secret value in '--set name[=value]' format. Multiples supported by passing --set multiple times.", action='append', validator=validate_set_secret)
         c.argument('agent_pool_name', options_list=['--agent-pool'], help='The name of the agent pool.', is_preview=True)
         c.argument('log_template', options_list=['--log-template'], help="The repository and tag template for run log artifact using the format: 'log/repo:tag' (e.g., 'acr/logs:{{.Run.ID}}'). Only applicable to CMK enabled registry.", is_preview=True)
+        c.argument('source_registry_auth_id', arg_type=get_enum_type(["[caller]", "none"]), help="Assigns the identity used for source registry login. Use '[caller]' for caller identity.")
 
     with self.argument_context('acr pack build') as c:
         c.argument('registry_name', options_list=['--registry', '-r'])
@@ -325,6 +330,7 @@ def load_arguments(self, _):  # pylint: disable=too-many-statements
         c.argument('secret_arg', options_list=['--secret-build-arg'], help="Secret build argument in '--secret-build-arg name[=value]' format. Multiples are supported by passing '--secret-build-arg name[=value]' multiple times. This parameter value is not surfaced to the ACR team and is more suitable for sensitive information.", action='append', validator=validate_secret_arg)
         c.argument('agent_pool_name', options_list=['--agent-pool'], help='The name of the agent pool.', is_preview=True)
         c.argument('log_template', options_list=['--log-template'], help="The repository and tag template for run log artifact using the format: 'log/repo:tag' (e.g., 'acr/logs:{{.Run.ID}}'). Only applicable to CMK enabled registry.", is_preview=True)
+        c.argument('source_registry_auth_id', arg_type=get_enum_type(["[caller]", "none"]), help="Assigns the identity used for source registry login. Use '[caller]' for caller identity.")
 
     with self.argument_context('acr task') as c:
         c.argument('registry_name', options_list=['--registry', '-r'])
@@ -374,6 +380,10 @@ def load_arguments(self, _):  # pylint: disable=too-many-statements
 
     with self.argument_context('acr task create') as c:
         c.argument('task_name', completer=None)
+        c.argument('source_registry_auth_id', help="Assigns the managed identity used for source registry login. Use '[system]' to refer to the system-assigned identity or a client ID to refer to a user-assigned managed identity.")
+
+    with self.argument_context('acr task update') as c:
+        c.argument('source_registry_auth_id', help="Assigns the managed identity used for source registry login. Use '[system]' to refer to the system-assigned identity or a client ID to refer to a user-assigned managed identity.")
 
     with self.argument_context('acr task identity') as c:
         c.argument('identities', options_list=['--identities'], nargs='*', help="Assigns managed identities to the task. Use '[system]' to refer to the system-assigned identity or a resource ID to refer to a user-assigned identity.")
@@ -439,6 +449,7 @@ def load_arguments(self, _):  # pylint: disable=too-many-statements
         c.argument('ignore_errors', options_list=['--ignore-errors'], help='Provide all health checks, even if errors are found', action='store_true', required=False)
         c.argument('vnet', options_list=['--vnet'],
                    help="Virtual network ID so to run this command inside a VNET to verify the DNS routing to private endpoints", required=False)
+        c.argument('repository', help="The name of the repository")
 
     with self.argument_context('acr scope-map') as c:
         c.argument('registry_name', options_list=['--registry', '-r'])
